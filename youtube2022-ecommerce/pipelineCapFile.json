@@ -1,0 +1,114 @@
+{
+    "objects": [
+        {
+            "id": "ActionId_9OQQc",
+            "name": "DefaultAction1",
+            "role": "DataPipelineDefaultRole",
+            "subject": "Failed Cap PipelineId: #{node.@pipelineId} Error: #{node.errorMessage}",
+            "type": "SnsAlarm",
+            "message": "Cap File Error: #{node.errorStackTrace}\n@kmelwani  @All Members",
+            "topicArn": "arn:aws:sns:us-east-1:423164509939:myTestTopic1"
+        },
+        {
+            "id": "DatabaseId_aXgSE",
+            "name": "DefaultDatabase1",
+            "connectionString": "jdbc:mysql://mysqlpipdb.cob2atfvib8y.us-east-1.rds.amazonaws.com:3306/ijp",
+            "*password": "Io5sdi$Tw34gLKnp",
+            "jdbcDriverJarUri": "s3://pipautomation/mysql-connector-java-5.1.48.jar",
+            "type": "JdbcDatabase",
+            "jdbcDriverClass": "com.mysql.jdbc.Driver",
+            "username": "pipByInstawave"
+        },
+        {
+            "id": "ActionId_S1JfP",
+            "name": "DefaultAction2",
+            "role": "DataPipelineDefaultRole",
+            "subject": "Success Cap PipelineId: #{node.@pipelineId} Error: #{node.errorMessage}",
+            "type": "SnsAlarm",
+            "message": "Cap File Success: #{node.errorStackTrace}\n@kmelwani  @All Members",
+            "topicArn": "arn:aws:sns:us-east-1:423164509939:myTestTopic1"
+        },
+        {
+            "id": "ResourceId_rkPh5",
+            "name": "DefaultResource1",
+            "subnetId": "subnet-03a19f155fa0ff6d1",
+            "resourceRole": "DataPipelineDefaultResourceRole",
+            "role": "DataPipelineDefaultRole",
+            "securityGroupIds": "sg-0603822226e863448",
+            "instanceType": "t1.micro",
+            "actionOnTaskFailure": "terminate",
+            "type": "Ec2Resource",
+            "terminateAfter": "4 Hours"
+        },
+        {
+            "id": "SqlActivityId_Esoin",
+            "name": "delete first column activity",
+            "database": {
+                "ref": "DatabaseId_aXgSE"
+            },
+            "dependsOn": {
+                "ref": "CopyActivityId_SK2KI"
+            },
+            "runsOn": {
+                "ref": "ResourceId_rkPh5"
+            },
+            "type": "SqlActivity",
+            "script": "delete from ijp.cap_data where tm = 'TM Login';"
+        },
+        {
+            "id": "CopyActivityId_SK2KI",
+            "name": "DefaultCopyActivity1",
+            "output": {
+                "ref": "DataNodeId_efFLj"
+            },
+            "input": {
+                "ref": "DataNodeId_a44N5"
+            },
+            "onFail": {
+                "ref": "ActionId_9OQQc"
+            },
+            "maximumRetries": "0",
+            "runsOn": {
+                "ref": "ResourceId_rkPh5"
+            },
+            "type": "CopyActivity",
+            "onSuccess": {
+                "ref": "ActionId_S1JfP"
+            }
+        },
+        {
+            "id": "DataNodeId_a44N5",
+            "name": "DefaultDataNode1",
+            "dataFormat": {
+                "ref": "DataFormatId_gpiRF"
+            },
+            "filePath": "s3://ijp-cap-data-upload/cap.csv",
+            "type": "S3DataNode"
+        },
+        {
+            "id": "DataNodeId_efFLj",
+            "name": "DefaultDataNode2",
+            "database": {
+                "ref": "DatabaseId_aXgSE"
+            },
+            "insertQuery": "INSERT INTO `ijp`.`cap_data`\n(`can_login`,\n`tm`,\n`issue_date`,\n`start_date`,\n`end_date`,\n`status`,`uploaded_by`,`uploaded_at`)\nVALUES\n(?,?,?,?,?,?,?,curdate());",
+            "type": "MySqlDataNode",
+            "table": "ijp.cap_data"
+        },
+        {
+            "id": "DataFormatId_gpiRF",
+            "name": "DefaultDataFormat1",
+            "type": "CSV"
+        },
+        {
+            "id": "Default",
+            "name": "Default",
+            "failureAndRerunMode": "CASCADE",
+            "resourceRole": "DataPipelineDefaultResourceRole",
+            "role": "DataPipelineDefaultRole",
+            "pipelineLogUri": "s3://piplog2/",
+            "scheduleType": "ONDEMAND"
+        }
+    ],
+    "parameters": []
+}

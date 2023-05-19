@@ -1,0 +1,21 @@
+{
+  "kind": "collectionType",
+  "collectionName": "orderks",
+  "info": {
+    "singularName": "orderk",
+    "pluralName": "orderks",
+    "displayName": "orderk"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "stripeId": {
+      "type": "text"
+    },
+    "products": {
+      "type": "json"
+    }
+  }
+}

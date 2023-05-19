@@ -1,0 +1,112 @@
+{"objects": [
+        {
+            "id": "DatabaseId_9c8pW",
+            "name": "DefaultDatabase1",
+            "connectionString": "jdbc:mysql://mysqlpipdb.cob2atfvib8y.us-east-1.rds.amazonaws.com:3306/ijp",
+            "*password": "Io5sdi$Tw34gLKnp",
+            "jdbcDriverJarUri": "s3://pipautomation/mysql-connector-java-5.1.48.jar",
+            "type": "JdbcDatabase",
+            "jdbcDriverClass": "com.mysql.jdbc.Driver",
+            "username": "pipByInstawave"
+        },
+        {
+            "id": "ActionId_GQY49",
+            "name": "DefaultAction12",
+            "role": "DataPipelineDefaultRole",
+            "subject": "Failed PipelineId: #{node.@pipelineId} Error: #{node.errorMessage}",
+            "type": "SnsAlarm",
+            "message": "Error: #{node.errorStackTrace}",
+            "topicArn": "arn:aws:sns:us-east-1:423164509939:myTestTopic"
+        },
+        {
+            "id": "DataNodeId_NpYtp",
+            "name": "DefaultDataNode1",
+            "database": {
+                "ref": "DatabaseId_9c8pW"
+            },
+            "insertQuery": "INSERT INTO `ijp`.`headcount_data_pipeline`\n(`can_login`,\n`employee_id`,\n`can_name`,\n`tm`,\n`grpm`,\n`site_leader`,\n`level`,\n`location`,\n`contract`,\n`business`,\n`job_title`,\n`business_title`,\n`doj`)\nVALUES\n(?,?,?,?,?,?,?,?,?,?,?,?,?);",
+            "type": "MySqlDataNode",
+            "table": "headcount_data_pipeline"
+        },
+        {
+            "id": "SqlActivityId_PVXpQ",
+            "name": "delete first column activity",
+            "database": {
+                "ref": "DatabaseId_9c8pW"
+            },
+            "dependsOn": {
+                "ref": "CopyActivityId_UqkFD"
+            },
+            "runsOn": {
+                "ref": "ResourceId_o5kDD"
+            },
+            "type": "SqlActivity",
+            "script": "delete from ijp.headcount_data_pipelinewhere tm = 'TM';"
+        },
+        {
+            "id": "DataFormatId_ju7oW",
+            "name": "DefaultDataFormat1",
+            "type": "CSV"
+        },
+        {
+            "id": "DataNodeId_P39XG",
+            "name": "DefaultDataNode2",
+            "dataFormat": {
+                "ref": "DataFormatId_ju7oW"
+            },
+            "filePath": "s3://ijp-headcount-data-upload/headcount.csv",
+            "type": "S3DataNode"
+        },
+        {
+            "id": "Default",
+            "name": "Default",
+            "failureAndRerunMode": "CASCADE",
+            "resourceRole": "DataPipelineDefaultResourceRole",
+            "role": "DataPipelineDefaultRole",
+            "pipelineLogUri": "s3://piplog2/",
+            "scheduleType": "ONDEMAND"
+        },
+        {
+            "id": "ResourceId_o5kDD",
+            "name": "DefaultResource1",
+            "subnetId": "subnet-03a19f155fa0ff6d1",
+            "resourceRole": "DataPipelineDefaultResourceRole",
+            "role": "DataPipelineDefaultRole",
+            "securityGroupIds": "sg-0603822226e863448",
+            "instanceType": "t1.micro",
+            "actionOnTaskFailure": "terminate",
+            "type": "Ec2Resource",
+            "terminateAfter": "10 Hours"
+        },
+        {
+            "id": "CopyActivityId_UqkFD",
+            "name": "DefaultCopyActivity1",
+            "output": {
+                "ref": "DataNodeId_NpYtp"
+            },
+            "input": {
+                "ref": "DataNodeId_P39XG"
+            },
+            "dependsOn": {
+                "ref": "SqlActivityId_M01cO"
+            },
+            "runsOn": {
+                "ref": "ResourceId_o5kDD"
+            },
+            "type": "CopyActivity"
+        },
+        {
+            "id": "SqlActivityId_M01cO",
+            "name": "truncate headcount table activity",
+            "database": {
+                "ref": "DatabaseId_9c8pW"
+            },
+            "runsOn": {
+                "ref": "ResourceId_o5kDD"
+            },
+            "type": "SqlActivity",
+            "script": "truncate table ijp.headcount_data_pipeline;"
+        }
+    ],
+    "parameters": []
+}

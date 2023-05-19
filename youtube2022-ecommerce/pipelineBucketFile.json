@@ -1,0 +1,174 @@
+{
+    "objects": [
+        {
+            "id": "Ec2Instance",
+            "name": "Ec2Instance",
+            "subnetId": "subnet-03a19f155fa0ff6d1",
+            "resourceRole": "DataPipelineDefaultResourceRole",
+            "role": "DataPipelineDefaultRole",
+            "securityGroupIds": "sg-0603822226e863448",
+            "instanceType": "t1.micro",
+            "actionOnTaskFailure": "terminate",
+            "type": "Ec2Resource",
+            "terminateAfter": "4 Hours"
+        },
+        {
+            "id": "Default",
+            "name": "Default",
+            "failureAndRerunMode": "CASCADE",
+            "resourceRole": "DataPipelineDefaultResourceRole",
+            "role": "DataPipelineDefaultRole",
+            "pipelineLogUri": "s3://piplog2/",
+            "scheduleType": "ONDEMAND"
+        },
+        {
+            "id": "DestinationRDSTable",
+            "name": "DestinationRDSTable",
+            "database": {
+                "ref": "rds_mysql"
+            },
+            "insertQuery": "insert into ijp.bucket_data(can_login,tm,bucket,week_no,year,uploaded_by)values(?,?,?,?,?,?);",
+            "type": "MySqlDataNode",
+            "table": "bucket_data"
+        },
+        {
+            "id": "ActionId_emFDf",
+            "name": "DefaultAction2",
+            "role": "DataPipelineDefaultRole",
+            "subject": "Success Bucket PipelineId: #{node.@pipelineId} Error: #{node.errorMessage}\n",
+            "type": "SnsAlarm",
+            "message": "Bucket file Success: #{node.errorStackTrace}\n@kmelwani  @All Members",
+            "topicArn": "arn:aws:sns:us-east-1:423164509939:myTestTopic1"
+        },
+        {
+            "id": "rds_mysql",
+            "name": "rds_mysql",
+            "connectionString": "jdbc:mysql://mysqlpipdb.cob2atfvib8y.us-east-1.rds.amazonaws.com:3306/ijp",
+            "*password": "Io5sdi$Tw34gLKnp",
+            "jdbcDriverJarUri": "s3://pipautomation/mysql-connector-java-5.1.48.jar",
+            "type": "JdbcDatabase",
+            "jdbcDriverClass": "com.mysql.jdbc.Driver",
+            "username": "pipByInstawave"
+        },
+        {
+            "id": "S3InputDataLocation",
+            "name": "S3InputDataLocation",
+            "dataFormat": {
+                "ref": "DataFormat1"
+            },
+            "filePath": "s3://ijp-bucket-data-upload/bucket.csv",
+            "type": "S3DataNode"
+        },
+        {
+            "id": "ActionId_Jwi5z",
+            "name": "DefaultAction1",
+            "role": "DataPipelineDefaultRole",
+            "subject": "Failed Bucket PipelineId: #{node.@pipelineId} Error: #{node.errorMessage}",
+            "type": "SnsAlarm",
+            "message": "Bucket File Error: #{node.errorStackTrace}\n@kmelwani  @All Members",
+            "topicArn": "arn:aws:sns:us-east-1:423164509939:myTestTopic1"
+        },
+        {
+            "id": "DataFormat1",
+            "name": "DataFormat1",
+            "type": "CSV"
+        },
+        {
+            "id": "CopyActivityId_7At94",
+            "name": "DefaultCopyActivity",
+            "output": {
+                "ref": "DestinationRDSTable"
+            },
+            "input": {
+                "ref": "S3InputDataLocation"
+            },
+            "onFail": {
+                "ref": "ActionId_Jwi5z"
+            },
+            "maximumRetries": "0",
+            "runsOn": {
+                "ref": "Ec2Instance"
+            },
+            "type": "CopyActivity",
+            "onSuccess": {
+                "ref": "ActionId_emFDf"
+            }
+        },
+        {
+            "id": "SqlActivityId_yUqnE",
+            "name": "delete_first_column_activity",
+            "database": {
+                "ref": "rds_mysql"
+            },
+            "dependsOn": {
+                "ref": "CopyActivityId_7At94"
+            },
+            "runsOn": {
+                "ref": "Ec2Instance"
+            },
+            "type": "SqlActivity",
+            "script": "delete from ijp.bucket_data where tm = 'TM'"
+        }
+    ],
+    "parameters": [
+        {
+            "id": "*myRDSPassword",
+            "description": "RDS MySQL password",
+            "type": "String"
+        },
+        {
+            "id": "myEc2RdsSecurityGrps",
+            "watermark": "security group name",
+            "helpText": "The names of one or more EC2 security groups that have access to the RDS MySQL cluster.",
+            "description": "RDS MySQL security group(s)",
+            "isArray": "true",
+            "optional": "true",
+            "type": "String"
+        },
+        {
+            "id": "myInputS3Loc",
+            "description": "Input S3 file path",
+            "type": "AWS::S3::ObjectKey"
+        },
+        {
+            "id": "myRDSUsername",
+            "description": "RDS MySQL username",
+            "type": "String"
+        },
+        {
+            "id": "myRDSTableInsertSql",
+            "helpText": "The SQL statement to insert data into the RDS MySQL table.",
+            "watermark": "INSERT INTO #{table} (col1, col2, col3) VALUES(?, ?, ?) ;",
+            "description": "Insert SQL query",
+            "type": "String"
+        },
+        {
+            "id": "myRDSTableName",
+            "helpText": "The name of an existing table or a new table that will be created based on the create table SQL query parameter below.",
+            "description": "RDS MySQL table name",
+            "type": "String"
+        },
+        {
+            "id": "myRDSInstanceId",
+            "watermark": "DB Instance",
+            "description": "RDS Instance ID",
+            "type": "String"
+        },
+        {
+            "id": "myRDSCreateTableSql",
+            "watermark": "CREATE TABLE pet IF NOT EXISTS (name VARCHAR(20), owner VARCHAR(20), species VARCHAR(20), gender CHAR(1), birth DATE, death DATE);",
+            "helpText": "The idempotent SQL statement to create the RDS MySQL table if it does not already exist.",
+            "description": "Create table SQL query",
+            "optional": "true",
+            "type": "String"
+        }
+    ],
+    "values": {
+        "myRDSInstanceId": "mysqlpipdb",
+        "myRDSUsername": "pipByInstawave",
+        "myRDSTableInsertSql": "insert into ijp.bucket_data(can_login,tm,bucket,uploaded_by,week_no, year)values(?,?,?,?,?,?);",
+        "*myRDSPassword": "Io5sdi$Tw34gLKnp",
+        "myInputS3Loc": "s3://ijp-bucket-data-upload/",
+        "myRDSTableName": "bucket_data"
+    }
+}
